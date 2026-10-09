@@ -32,9 +32,17 @@ jobs:
         run: |
           export THEOS="${{ github.workspace }}/theos"
           chmod -R 755 .
-          make FINALPACKAGE=1 THEOS="${{ github.workspace }}/theos"
+          set -o pipefail
+          make FINALPACKAGE=1 THEOS="${{ github.workspace }}/theos" 2>&1 | tee make.log || {
+            echo "### ❌ Build Error Log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 make.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Upload Dylib Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: 34306jit-Dylib
@@ -42,3 +50,4 @@ jobs:
             .theos/obj/*.dylib
             .theos/obj/**/*.dylib
             packages/*.deb
+            make.log
