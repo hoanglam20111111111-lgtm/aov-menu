@@ -10,23 +10,31 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Project Code
         uses: actions/checkout@v4
 
-      - name: Setup Theos and SDKs
-        run: |
-          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
-          git clone --depth=1 https://github.com/theos/sdks.git /tmp/sdks
-          cp -r /tmp/sdks/* "$HOME/theos/sdks/"
-          chmod -R 755 .
+      - name: Checkout Theos
+        uses: actions/checkout@v4
+        with:
+          repository: theos/theos
+          ref: master
+          submodules: recursive
+          path: theos
+
+      - name: Checkout Theos SDKs
+        uses: actions/checkout@v4
+        with:
+          repository: theos/sdks
+          ref: master
+          path: theos/sdks
 
       - name: Compile Dylib
         run: |
-          export THEOS="$HOME/theos"
-          make FINALPACKAGE=1 THEOS="$HOME/theos" 2>&1 | tee make.log
+          export THEOS="${{ github.workspace }}/theos"
+          chmod -R 755 .
+          make FINALPACKAGE=1 THEOS="${{ github.workspace }}/theos"
 
       - name: Upload Dylib Artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: 34306jit-Dylib
@@ -34,4 +42,3 @@ jobs:
             .theos/obj/*.dylib
             .theos/obj/**/*.dylib
             packages/*.deb
-            make.log
