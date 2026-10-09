@@ -19,6 +19,7 @@ jobs:
           git clone --depth=1 https://github.com/theos/sdks.git /tmp/sdks
           cp -r /tmp/sdks/* ~/theos/sdks/
           chmod -R 755 .
+          ls -la ~/theos/sdks/
 
       - name: Compile Dylib
         run: |
@@ -32,3 +33,4 @@ jobs:
           path: |
             .theos/obj/*.dylib
             .theos/obj/**/*.dylib
+            packages/*.deb

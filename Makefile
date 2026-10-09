@@ -1,5 +1,6 @@
-export THEOS ?= $(HOME)/theos
+THEOS ?= $(HOME)/theos
 ARCHS = arm64
+TARGET = iphone:clang:latest:14.0
 FINALPACKAGE = 1
 FOR_RELEASE = 1
 WARNINGS = 1
