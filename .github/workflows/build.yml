@@ -1,0 +1,30 @@
+name: Build Dylib
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          git clone https://github.com/theos/sdks.git ~/theos/sdks
+
+      - name: Compile Dylib
+        run: |
+          export THEOS=~/theos
+          make FINALPACKAGE=1
+
+      - name: Upload Dylib Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 34306jit-Dylib
+          path: .theos/obj/*.dylib
