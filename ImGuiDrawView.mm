@@ -69,47 +69,39 @@ static bool MenDeal = true;
 
 - (void)loadView
 {
-
- 
-
-    CGFloat w = [UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.width;
-    CGFloat h = [UIApplication sharedApplication].windows[0].rootViewController.view.frame.size.height;
-    self.view = [[MTKView alloc] initWithFrame:CGRectMake(0, 0, w, h)];
+    CGRect screenBounds = [UIScreen mainScreen].bounds;
+    self.view = [[MTKView alloc] initWithFrame:screenBounds];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    Spam *spam = [[Spam alloc] init];
-    [spam startSpam];
     self.mtkView.device = self.device;
     self.mtkView.delegate = self;
     self.mtkView.clearColor = MTLClearColorMake(0, 0, 0, 0);
     self.mtkView.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0];
     self.mtkView.clipsToBounds = YES;
 
-    void Il2CppAttachOld();
-    Il2CppAttachOld();
-    Il2CppMethod& getClass(const char* namespaze, const char* className);
-    uint64_t getMethod(const char* methodName, int argsCount);
-    
-    Il2CppMethod methodAccessSystem("Project_d.dll"); // Project_d.dll - 17655
-    Il2CppMethod methodAccessSystem2("Project.Plugins_d.dll"); // Project.Plugins_d.dll - 11363
-    Il2CppMethod methodAccessRes("AovTdr.dll"); //AovTdr.dll - 6421
+    // Run IL2CPP attach and Hook on background thread to prevent iOS watchdog termination
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        void Il2CppAttachOld();
+        Il2CppAttachOld();
 
+        for (int i = 0; i < 30; i++) {
+            if (IL2CPP::il2cpp_domain_get && IL2CPP::il2cpp_domain_get()) {
+                break;
+            }
+            sleep(1);
+        }
 
-    hackmapoffset = methodAccessSystem2.getClass("NucleusDrive.Logic", "LVActorLinker").getMethod("SetVisible", 3);
-    //hook
-//    HOOK(ENCRYPTOFFSET("0x61E0F48"), _cam, cam); // private float GetCameraHeightRateValue(int type) { }
-//    HOOK(ENCRYPTOFFSET("0x61DFF50"), _Update, Update); // private void Update() { }
-//    HOOK(ENCRYPTOFFSET("0x61E1370"), _highrate, highrate); // 	private void OnCameraHeightChanged() { }
-//    HOOK(ENCRYPTOFFSET("0x59EC6F4"), IsSmartUse, _IsSmartUse); // public bool IsSmartUse() { }
-//    HOOK(ENCRYPTOFFSET("0x57CC0F4"), get_IsUseCameraMoveWithIndicator, _get_IsUseCameraMoveWithIndicator); // public void ShowSkillStateInfo(bool bShow) { }
-//    HOOK(ENCRYPTOFFSET("0x64C773C"), IsDistanceLowerEqualAsAttacker, old_IsDistanceLowerEqualAsAttacker); //public bool IsDistanceLowerEqualAsAttacker(ActorLinker targetActor, int radius) { }
-//    HOOK(ENCRYPTOFFSET("0x5AD7B84"), IsUseSkillJoystick, _IsUseSkillJoystick); // public bool IsUseSkillJoystick(SkillSlotType slot) { }
-//    HOOK(ENCRYPTOFFSET("0x5A6A764"), SetPlayerName, old_SetPlayerName); // public void SetPlayerName(string playerName, string prefixName = "", bool isGuideLevel = False) { }
-//    HOOK(ENCRYPTOFFSET("0x547FB70"), _Autowin, Autowin); // public void SetHpAndEpToInitialValue(int hpPercent = 10000, int epPercent = 10000) { }
-//
-    HOOK(hackmapoffset, LActorRoot_Visible, _LActorRoot_Visible); //public bool SetVisible(COM_PLAYERCAMP camp, bool bVisible, bool forceSync = False) { }
+        Il2CppMethod methodAccessSystem2("Project.Plugins_d.dll");
+        hackmapoffset = methodAccessSystem2.getClass("NucleusDrive.Logic", "LVActorLinker").getMethod("SetVisible", 3);
+        if (hackmapoffset > 0) {
+            NSLog(@"[AOV-MENU] Found SetVisible offset: 0x%llx", hackmapoffset);
+            HOOK(hackmapoffset, LActorRoot_Visible, _LActorRoot_Visible);
+        } else {
+            NSLog(@"[AOV-MENU] SetVisible offset not found.");
+        }
+    });
 }
 
 

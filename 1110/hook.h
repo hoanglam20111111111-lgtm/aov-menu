@@ -146,14 +146,16 @@ void SetPlayerName(void *instance, MonoString *playerName, void *prefixName, boo
 }
 
 //hack map
-void (*_LActorRoot_Visible)(void *instance, int camp, bool bVisible, const bool forceSync);
+void (*_LActorRoot_Visible)(void *instance, int camp, bool bVisible, const bool forceSync) = nullptr;
 void LActorRoot_Visible(void *instance, int camp, bool bVisible, const bool forceSync = false) {
     if (instance != nullptr && Map) {
         if(camp == 1 || camp == 2 || camp == 110 || camp == 255) {
             bVisible = true;
         }
     } 
- return _LActorRoot_Visible(instance, camp, bVisible, forceSync);
+    if (_LActorRoot_Visible != nullptr) {
+        _LActorRoot_Visible(instance, camp, bVisible, forceSync);
+    }
 }
 
 void(*loggoc)(void *instance);

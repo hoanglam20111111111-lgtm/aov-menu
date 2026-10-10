@@ -728,10 +728,20 @@ BOOL DeactiveCodePatch(char* machoPath, uint64_t vaddr, char* patch)
 
 
 #define HOOK(x, y, z) \
-NSString* result_##y = Hook1110(("Frameworks/UnityFramework.framework/UnityFramework"), x, nullptr); \
-if (result_##y) { \
-    log(@"Hook result: %s", result_##y.UTF8String); \
-    void* result = StaticInlineHookFunction(("Frameworks/UnityFramework.framework/UnityFramework"), x, (void *) y); \
-    log(@"Hook result %p", result); \
-    *(void **) (&z) = (void*) result; \
-}
+    do { \
+        if ((x) != 0) { \
+            @try { \
+                NSString* result_##y = Hook1110(("Frameworks/UnityFramework.framework/UnityFramework"), (x), nullptr); \
+                if (result_##y) { \
+                    log(@"Hook result: %s", result_##y.UTF8String); \
+                    void* result = StaticInlineHookFunction(("Frameworks/UnityFramework.framework/UnityFramework"), (x), (void *) (y)); \
+                    log(@"Hook result %p", result); \
+                    if (result != nullptr) { \
+                        *(void **) (&(z)) = (void*) result; \
+                    } \
+                } \
+            } @catch (NSException *e) { \
+                NSLog(@"[AOV-MENU] Hook exception: %@", e); \
+            } \
+        } \
+    } while(0)

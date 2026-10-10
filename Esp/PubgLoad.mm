@@ -25,28 +25,44 @@ UIWindow *mainWindow;
 
 + (void)load
 {
-[super load];
- 
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3* NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-             mainWindow = [UIApplication sharedApplication].keyWindow;
-            extraInfo =  [PubgLoad new];
-            [extraInfo initTapGes];
-            [extraInfo tapIconView];
-            [extraInfo initTapGes2];
-            [extraInfo tapIconView2];
-          
-        });
-        
+    [super load];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [PubgLoad setupMenu];
+    });
+}
+
++ (void)setupMenu
+{
+    extraInfo = [PubgLoad new];
+    [extraInfo initTapGes];
+    [extraInfo initTapGes2];
+    [extraInfo tapIconView];
+}
+
+- (UIView *)findTargetView
+{
+    UIWindow *window = [UIApplication sharedApplication].keyWindow;
+    if (!window) {
+        NSArray *windows = [UIApplication sharedApplication].windows;
+        if (windows.count > 0) {
+            window = windows[0];
+        }
     }
+    if (window && window.rootViewController && window.rootViewController.view) {
+        return window.rootViewController.view;
+    }
+    return window;
+}
 
 -(void)initTapGes
 {
-    
-
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] init];
     tap.numberOfTapsRequired = 2;//点击次数
     tap.numberOfTouchesRequired = 3;//手指数
-    [[JHPP currentViewController].view addGestureRecognizer:tap];
+    UIViewController *currVC = [JHPP currentViewController];
+    if (currVC && currVC.view) {
+        [currVC.view addGestureRecognizer:tap];
+    }
     [tap addTarget:self action:@selector(tapIconView)];
 }
 
@@ -55,29 +71,36 @@ UIWindow *mainWindow;
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] init];
     tap.numberOfTapsRequired = 2;//点击次数
     tap.numberOfTouchesRequired = 2;//手指数
-    [[JHPP currentViewController].view addGestureRecognizer:tap];
+    UIViewController *currVC = [JHPP currentViewController];
+    if (currVC && currVC.view) {
+        [currVC.view addGestureRecognizer:tap];
+    }
     [tap addTarget:self action:@selector(tapIconView2)];
 }
 
 -(void)tapIconView2
 {
- if (!_vna) {
-     ImGuiDrawView *vc = [[ImGuiDrawView alloc] init];
-     _vna = vc;
- }
- 
- [ImGuiDrawView showChange:false];
- [[UIApplication sharedApplication].windows[0].rootViewController.view addSubview:_vna.view];
+    if (!_vna) {
+        ImGuiDrawView *vc = [[ImGuiDrawView alloc] init];
+        _vna = vc;
+    }
+    [ImGuiDrawView showChange:false];
+    UIView *target = [self findTargetView];
+    if (target && _vna.view && _vna.view.superview != target) {
+        [target addSubview:_vna.view];
+    }
 }
 
 -(void)tapIconView
 {
- if (!_vna) {
-     ImGuiDrawView *vc = [[ImGuiDrawView alloc] init];
-     _vna = vc;
- }
- 
- [ImGuiDrawView showChange:true];
- [[UIApplication sharedApplication].windows[0].rootViewController.view addSubview:_vna.view];
+    if (!_vna) {
+        ImGuiDrawView *vc = [[ImGuiDrawView alloc] init];
+        _vna = vc;
+    }
+    [ImGuiDrawView showChange:true];
+    UIView *target = [self findTargetView];
+    if (target && _vna.view && _vna.view.superview != target) {
+        [target addSubview:_vna.view];
+    }
 }
 @end

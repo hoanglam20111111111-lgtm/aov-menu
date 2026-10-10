@@ -24,6 +24,10 @@ public:
 MemoryInfo getBaseAddress(const std::string &fileName)
 {
     MemoryInfo _info;
+    _info.index = 0;
+    _info.header = nullptr;
+    _info.name = nullptr;
+    _info.address = 0;
 
     const uint32_t imageCount = _dyld_image_count();
 
@@ -71,12 +75,22 @@ void Il2CppAttachOld()
     NSString *appPath = [[NSBundle mainBundle] bundlePath];
     NSString *unityFrameworkPath = [appPath stringByAppendingPathComponent:@"Frameworks/UnityFramework.framework/UnityFramework"]; // THIS NEED TO BE CHANGED IF Il2CPP ISN'T INIT IN "UnityFramework"
     void *handle = dlopen([unityFrameworkPath UTF8String], RTLD_LAZY);
-    while (!handle)
+    int attempts = 0;
+    while (!handle && attempts < 10)
     {
-        //[menu showPopup:@"Error" description:@"Failed to load UnityFramework"];
         NSLog(@"Error: Failed to load UnityFramework");
-        handle = dlopen([unityFrameworkPath UTF8String], RTLD_LAZY);
         sleep(1);
+        handle = dlopen([unityFrameworkPath UTF8String], RTLD_LAZY);
+        attempts++;
+    }
+
+    if (!handle) {
+        handle = dlopen(NULL, RTLD_LAZY);
+    }
+
+    if (!handle) {
+        NSLog(@"[AOV-MENU] Cannot get handle for UnityFramework or main executable");
+        return;
     }
 
     IL2CPP::il2cpp_assembly_get_image = reinterpret_cast<const void *(*)(const void *)>(dlsym(handle, "il2cpp_assembly_get_image"));
@@ -94,19 +108,26 @@ void Il2CppAttachOld()
     IL2CPP::il2cpp_string_new = reinterpret_cast<void *(*)(const char *)>(dlsym(handle, "il2cpp_string_new"));
     IL2CPP::il2cpp_string_new_utf16 = reinterpret_cast<void *(*)(const wchar_t *, int32_t)>(dlsym(handle, "il2cpp_string_new_utf16"));
     IL2CPP::il2cpp_string_chars = reinterpret_cast<uint16_t *(*)(void *)>(dlsym(handle, "il2cpp_string_chars"));
-
-    dlclose(handle);
 }
 
 void *Il2CppGetImageByNameOld(const char *image)
 {
-    size_t size;
-    void **assemblies = IL2CPP::il2cpp_domain_get_assemblies(IL2CPP::il2cpp_domain_get(), &size);
+    if (!image) return 0;
+    if (!IL2CPP::il2cpp_domain_get || !IL2CPP::il2cpp_domain_get_assemblies || !IL2CPP::il2cpp_assembly_get_image || !IL2CPP::il2cpp_image_get_name) {
+        return 0;
+    }
+    void *domain = IL2CPP::il2cpp_domain_get();
+    if (!domain) return 0;
+    size_t size = 0;
+    void **assemblies = IL2CPP::il2cpp_domain_get_assemblies(domain, &size);
+    if (!assemblies) return 0;
     for (int i = 0; i < size; ++i)
     {
+        if (!assemblies[i]) continue;
         void *img = (void *)IL2CPP::il2cpp_assembly_get_image(assemblies[i]);
+        if (!img) continue;
         const char *img_name = IL2CPP::il2cpp_image_get_name(img);
-        if (strcmp(img_name, image) == 0)
+        if (img_name && strcmp(img_name, image) == 0)
         {
             return img;
         }
@@ -195,6 +216,8 @@ public:
     // Constructor initializes the image from assembly name
     Il2CppField(const char *assemblyName)
     {
+        klass = nullptr;
+        field = nullptr;
         image = Il2CppGetImageByNameOld(assemblyName);
         if (!image)
         {
@@ -206,6 +229,10 @@ public:
     // Get class by namespace and class name
     Il2CppField &getClass(const char *namespaze, const char *className)
     {
+        if (!image || !IL2CPP::il2cpp_class_from_name) {
+            klass = nullptr;
+            return *this;
+        }
         klass = IL2CPP::il2cpp_class_from_name(image, namespaze, className);
         if (!klass)
         {
@@ -218,6 +245,10 @@ public:
     // Get field by field name
     Il2CppField &getField(const char *fieldName)
     {
+        if (!klass || !IL2CPP::il2cpp_class_get_field_from_name) {
+            field = nullptr;
+            return *this;
+        }
         field = IL2CPP::il2cpp_class_get_field_from_name(klass, fieldName);
         if (!field)
         {
@@ -230,6 +261,7 @@ public:
     // Get field offset
     size_t getOffset() const
     {
+        if (!field || !IL2CPP::il2cpp_field_get_offset) return 0;
         return IL2CPP::il2cpp_field_get_offset(field);
     }
 
@@ -271,6 +303,8 @@ public:
     // Constructor initializes the image from assembly name
     Il2CppMethod(const char *assemblyName)
     {
+        klass = nullptr;
+        method = nullptr;
         image = Il2CppGetImageByNameOld(assemblyName);
         if (!image)
         {
@@ -282,6 +316,10 @@ public:
     // Get class by namespace and class name
     Il2CppMethod &getClass(const char *namespaze, const char *className)
     {
+        if (!image || !IL2CPP::il2cpp_class_from_name) {
+            klass = nullptr;
+            return *this;
+        }
         klass = IL2CPP::il2cpp_class_from_name(image, namespaze, className);
         if (!klass)
         {
@@ -294,6 +332,9 @@ public:
     // Get method by method name and number of arguments
     uint64_t getMethod(const char *methodName, int argsCount)
     {
+        if (!klass || !IL2CPP::il2cpp_class_get_method_from_name) {
+            return 0;
+        }
         void **methodPointer = (void **)IL2CPP::il2cpp_class_get_method_from_name(klass, methodName, argsCount);
         if (!methodPointer || !*methodPointer)
         {
