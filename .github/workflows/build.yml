@@ -28,6 +28,11 @@ jobs:
           ref: master
           path: theos/sdks
 
+      - name: Install ldid and configure PATH
+        run: |
+          brew install ldid || true
+          echo "${{ github.workspace }}/theos/bin" >> $GITHUB_PATH
+
       - name: Compile Dylib
         run: |
           export THEOS="${{ github.workspace }}/theos"
